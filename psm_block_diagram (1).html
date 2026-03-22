@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PSM Interconnect System — Live Block Diagram</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0a0c0f;
+    --bg2: #111419;
+    --bg3: #181c22;
+    --panel: #1a1f28;
+    --border: #252c38;
+    --border2: #2e3848;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --dim: #3a4455;
+    --red: #c0392b;
+    --red-bright: #e05252;
+    --blue: #2980b9;
+    --blue-bright: #5dade2;
+    --cyl-dark: #1a2744;
+    --cyl-border: #2d4a80;
+    --cyl-text: #e8f0ff;
+    --sol-fill: #6c3483;
+    --sol-border: #9b59b6;
+    --sol-text: #f0d6ff;
+    --green: #34d399;
+    --amber: #fbbf24;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  .hdr-left { display: flex; align-items: center; gap: 14px; }
+  .logo {
+    width: 30px; height: 30px;
+    background: var(--red);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700; font-size: 11px; color: #fff; flex-shrink: 0;
+  }
+  .hdr-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .hdr-sub { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .failsafe-btn {
+    background: rgba(192,57,43,0.1);
+    border: 1px solid rgba(192,57,43,0.4);
+    color: var(--red-bright);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; font-weight: 700;
+    padding: 6px 14px; border-radius: 5px;
+    cursor: pointer; letter-spacing: 0.07em;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+  .failsafe-btn:hover { background: rgba(192,57,43,0.2); }
+
+  .app { display: flex; flex: 1; min-height: 0; }
+
+  .sidebar {
+    width: 210px; flex-shrink: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+  }
+  .sb-sec { padding: 14px; border-bottom: 1px solid var(--border); }
+  .sb-lbl {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+    color: var(--muted); text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 8px;
+  }
+  .mode-btn {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px; font-weight: 500;
+    padding: 7px 10px; border-radius: 5px;
+    cursor: pointer; text-align: left;
+    margin-bottom: 5px;
+    transition: all 0.15s;
+  }
+  .mode-btn:hover { background: var(--bg3); color: var(--text); border-color: var(--dim); }
+  .mode-btn.active { background: rgba(108,52,131,0.15); border-color: var(--sol-border); color: var(--sol-text); }
+  .mdot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  .cyl-list { display: flex; flex-direction: column; gap: 3px; }
+  .cyl-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 500;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+  .cyl-item.active {
+    background: rgba(52,211,153,0.07);
+    border-color: rgba(52,211,153,0.2);
+    color: var(--green);
+  }
+  .cyl-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); transition: background 0.2s; }
+  .cyl-item.active .cyl-dot { background: var(--green); }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .stat-card {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 5px; padding: 9px 9px 7px;
+  }
+  .stat-val { font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .stat-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 1px; }
+
+  .canvas-wrap {
+    flex: 1; overflow: auto;
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 36px 24px;
+    background: var(--bg);
+  }
+  #main-svg { display: block; overflow: visible; }
+
+  .info-panel {
+    width: 248px; flex-shrink: 0;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+  }
+  .ip-sec { padding: 14px; border-bottom: 1px solid var(--border); }
+  .ip-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .ip-body { font-size: 11px; color: var(--muted); line-height: 1.6; }
+  .ip-badge {
+    display: inline-block; padding: 2px 8px;
+    border-radius: 12px; font-size: 10px; font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em; margin-top: 5px;
+  }
+  .ib-open   { background: rgba(52,211,153,0.13); color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
+  .ib-closed { background: rgba(155,89,182,0.13); color: #c39bd3;      border: 1px solid rgba(155,89,182,0.3); }
+  .ib-flow   { background: rgba(91,156,246,0.13); color: #7ec8e3;       border: 1px solid rgba(91,156,246,0.3); }
+
+  .path-list { list-style: none; }
+  .path-list li {
+    font-size: 11px; font-family: 'JetBrains Mono', monospace;
+    color: var(--muted); padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .path-list li:last-child { border-bottom: none; }
+  .pdot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+  .dbb-wrap {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 7px; padding: 11px; margin-top: 8px;
+  }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-left">
+    <div class="logo">PSM</div>
+    <div>
+      <div class="hdr-title">Programmable Segmented Manifold Interconnect System</div>
+      <div class="hdr-sub">Los Alamos National Laboratory × Arizona State University — Team New Millennium</div>
+    </div>
+  </div>
+  <button class="failsafe-btn" onclick="failsafe()">⚡ Fail-Safe All</button>
+</header>
+
+<div class="app">
+
+  <div class="sidebar">
+    <div class="sb-sec">
+      <div class="sb-lbl">Routing Mode</div>
+      <button class="mode-btn active" id="btn-manual"   onclick="setMode('manual')">  <span class="mdot" style="background:#64748b"></span> Manual toggle</button>
+      <button class="mode-btn"        id="btn-transfer" onclick="setMode('transfer')"><span class="mdot" style="background:#34d399"></span> Cylinder transfer</button>
+      <button class="mode-btn"        id="btn-feed"     onclick="setMode('feed')">    <span class="mdot" style="background:#fbbf24"></span> Chemical feed</button>
+      <button class="mode-btn"        id="btn-vacuum"   onclick="setMode('vacuum')">  <span class="mdot" style="background:#5dade2"></span> Vacuum supply</button>
+      <button class="mode-btn"        id="btn-sparging" onclick="setMode('sparging')"><span class="mdot" style="background:#22d3ee"></span> Sparging air</button>
+      <button class="mode-btn"        id="btn-drain"    onclick="setMode('drain')">   <span class="mdot" style="background:#e05252"></span> Drain all</button>
+    </div>
+    <div class="sb-sec">
+      <div class="sb-lbl">Cylinder Status</div>
+      <div class="cyl-list" id="cyl-list"></div>
+    </div>
+    <div class="sb-sec">
+      <div class="sb-lbl">System Stats</div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-val" id="stat-open"   style="color:#34d399">0</div><div class="stat-lbl">Open</div></div>
+        <div class="stat-card"><div class="stat-val" id="stat-closed" style="color:#9b59b6">10</div><div class="stat-lbl">Closed</div></div>
+        <div class="stat-card"><div class="stat-val" id="stat-acyl"   style="color:#22d3ee">0</div><div class="stat-lbl">Active cyls</div></div>
+        <div class="stat-card"><div class="stat-val"                  style="color:#fbbf24">10</div><div class="stat-lbl">Total nodes</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="canvas-wrap">
+    <svg id="main-svg" width="560" height="560" viewBox="0 0 560 560"></svg>
+  </div>
+
+  <div class="info-panel">
+    <div class="ip-sec">
+      <div class="ip-title" id="info-title">System ready</div>
+      <div class="ip-body"  id="info-body">Click any solenoid (S) node to toggle it. Use routing modes for preset configurations.</div>
+      <div id="info-badge"></div>
+    </div>
+    <div class="ip-sec">
+      <div class="sb-lbl">Active Flow Paths</div>
+      <ul class="path-list" id="path-list">
+        <li><span class="pdot" style="background:#3a4455"></span>No active paths</li>
+      </ul>
+    </div>
+    <div class="ip-sec">
+      <div class="sb-lbl">DBB Solenoid</div>
+      <div class="dbb-wrap">
+        <svg id="dbb-svg" width="220" height="100" viewBox="0 0 220 100">
+          <defs>
+            <marker id="fa" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+              <path d="M1 1L7 4L1 7" fill="none" stroke="#34d399" stroke-width="1.5"/>
+            </marker>
+          </defs>
+          <rect x="1" y="1" width="218" height="98" rx="6" fill="#111419" stroke="#252c38" stroke-width="1"/>
+          <rect x="18"  y="35" width="184" height="30" rx="3" fill="#1a2d4d" stroke="#2d4a80" stroke-width="1"/>
+          <rect x="6"   y="43" width="22"  height="14" rx="2" fill="#1a3060" stroke="#2d4a80" stroke-width="1"/>
+          <rect x="192" y="43" width="22"  height="14" rx="2" fill="#1a3060" stroke="#2d4a80" stroke-width="1"/>
+          <rect id="dbb-pl" x="86" y="26" width="48" height="48" rx="3" fill="#2a1f4e" stroke="#7c5cbf" stroke-width="1.5"/>
+          <circle id="dbb-sl" cx="82"  cy="50" r="7" fill="#1a1f28" stroke="#7c5cbf" stroke-width="1.5"/>
+          <circle id="dbb-sr" cx="138" cy="50" r="7" fill="#1a1f28" stroke="#7c5cbf" stroke-width="1.5"/>
+          <rect id="dbb-bl" x="107" y="14" width="6" height="22" rx="2" fill="#2a2000" stroke="#a07b14" stroke-width="1"/>
+          <text x="110" y="10" text-anchor="middle" fill="#a07b14" font-family="'JetBrains Mono',monospace" font-size="7">bleed</text>
+          <text x="17"  y="51" fill="#3a4455" font-family="'JetBrains Mono',monospace" font-size="7" text-anchor="middle">IN</text>
+          <text x="203" y="51" fill="#3a4455" font-family="'JetBrains Mono',monospace" font-size="7" text-anchor="middle">IN</text>
+          <line id="dbb-flow" x1="30" y1="50" x2="190" y2="50" stroke="#34d399" stroke-width="2" stroke-dasharray="5 3" opacity="0" marker-end="url(#fa)"/>
+          <text id="dbb-lbl" x="110" y="96" text-anchor="middle" fill="#3a4455" font-family="'Space Grotesk',sans-serif" font-size="9">Spring-return closed · dual seat isolation</text>
+        </svg>
+      </div>
+    </div>
+    <div class="ip-sec">
+      <div class="sb-lbl">System Notes</div>
+      <div class="ip-body" style="font-size:11px">
+        <strong style="color:#e2e8f0">Formula:</strong> n(n−1)/2 solenoids for n cylinders.<br><br>
+        <strong style="color:#e2e8f0">Materials:</strong> Hastelloy C-276, PTFE lining, Kalrez FFKM seals.<br><br>
+        <strong style="color:#e2e8f0">Fail-safe:</strong> Spring-return — all nodes close on power/air loss.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const N = 5;
+const CYL_LABELS = ['C1','C2','C3','C4','Cn'];
+
+// Exact layout from slide:
+// Cylinders on the diagonal: Ci at grid position (i, i)
+// Red vertical pipes: column c runs vertically (top to bottom of grid)
+// Blue horizontal pipes: row r runs horizontally from col 0 to col r-1, ending just before cylinder Cr
+// Solenoid S at intersection (col c, row r) where c < r
+
+const STEP = 100;   // px between grid positions
+const OX   = 50;    // origin X
+const OY   = 40;    // origin Y
+const CR   = 22;    // cylinder radius
+const SR   = 15;    // solenoid radius
+
+const openNodes = new Set();
+const svg = document.getElementById('main-svg');
+
+function gx(c) { return OX + c * STEP; }
+function gy(r) { return OY + r * STEP; }
+function nid(c,r) { return `n_${c}_${r}`; }
+
+const MODES = {
+  manual:   { nodes: [],                                     label: 'Manual mode',        body: 'Click any solenoid node to toggle it.',                                                badge: null   },
+  transfer: { nodes: [nid(0,1), nid(0,3), nid(2,3)],        label: 'C1 → C3 transfer',   body: 'Opens S(C1×C2), S(C1×C4), S(C3×C4) — routing fluid from C1 down vertical manifold, across horizontal, into C3.', badge: 'flow' },
+  feed:     { nodes: [nid(1,2)],                             label: 'Chemical feed → C2', body: 'Supply connected to C2 via row 2. S(C2×C3) open. All other nodes remain closed.',     badge: 'flow' },
+  vacuum:   { nodes: [nid(3,4)],                             label: 'Vacuum → C4',        body: 'Vacuum supply to C4 via row 4 horizontal. S(C4×Cn) open. Bidirectional inlet.',        badge: 'flow' },
+  sparging: { nodes: [nid(2,3), nid(3,4)],                   label: 'Sparging → C3 & C4', body: 'Sparging air to C3 and C4 simultaneously via separate horizontal manifold rows.',      badge: 'flow' },
+  drain:    { nodes: [nid(0,1),nid(1,2),nid(2,3),nid(3,4)], label: 'Drain all cylinders', body: 'Diagonal nodes open. Each cylinder drains via its own row — no cross-contamination.', badge: 'flow' },
+};
+
+let currentMode = 'manual';
+
+function setMode(mode) {
+  currentMode = mode;
+  openNodes.clear();
+  MODES[mode].nodes.forEach(n => openNodes.add(n));
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-' + mode).classList.add('active');
+  draw();
+  const m = MODES[mode];
+  setInfo(m.label, m.body, m.badge);
+}
+
+function failsafe() {
+  openNodes.clear(); currentMode = 'manual';
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-manual').classList.add('active');
+  draw();
+  setInfo('Fail-safe engaged', 'All DBB nodes closed. Spring-return active. System fully isolated.', 'closed');
+}
+
+function setInfo(title, body, badge) {
+  document.getElementById('info-title').textContent = title;
+  document.getElementById('info-body').textContent  = body;
+  const ib = document.getElementById('info-badge');
+  if      (badge === 'open')   ib.innerHTML = '<span class="ip-badge ib-open">OPEN</span>';
+  else if (badge === 'closed') ib.innerHTML = '<span class="ip-badge ib-closed">CLOSED</span>';
+  else if (badge === 'flow')   ib.innerHTML = '<span class="ip-badge ib-flow">FLOW ACTIVE</span>';
+  else                         ib.innerHTML = '';
+}
+
+function el(tag, attrs={}) {
+  const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k,v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+}
+function tx(text, attrs={}) { const e = el('text', attrs); e.textContent = text; return e; }
+
+function isCylActive(i) {
+  for (const id of openNodes) {
+    const [,c,r] = id.split('_').map(Number);
+    if (c === i || r === i) return true;
+  }
+  return false;
+}
+
+function colHasOpen(c) {
+  return [...openNodes].some(id => id.split('_').map(Number)[1] === c);
+}
+function rowHasOpen(r) {
+  return [...openNodes].some(id => id.split('_').map(Number)[2] === r);
+}
+
+function draw() {
+  svg.innerHTML = '';
+
+  // Background dots
+  for (let x = 20; x < 560; x += 28)
+    for (let y = 10; y < 560; y += 28)
+      svg.appendChild(el('circle', { cx:x, cy:y, r:0.7, fill:'#1c2130' }));
+
+  // ── Vertical (red) pipes ──────────────────────────────────────
+  // Per the slide: each cylinder Ci (i>0) has a vertical red pipe running
+  // from just below C1 (top of grid = gy(0)) down to gy(N-1).
+  // Column c's pipe is at x = gx(c).
+  for (let c = 0; c < N - 1; c++) {
+    const x      = gx(c);
+    const yStart = gy(0) + CR + 2;   // just below C1 row
+    const yEnd   = gy(N - 1);        // down to Cn row
+    const active = colHasOpen(c);
+    svg.appendChild(el('line', {
+      x1: x, y1: yStart, x2: x, y2: yEnd,
+      stroke: active ? '#e05252' : '#c0392b',
+      'stroke-width': active ? 5 : 3.5,
+      'stroke-linecap': 'round'
+    }));
+  }
+
+  // ── Horizontal (blue) pipes ───────────────────────────────────
+  // Row r's pipe runs from x=gx(0) to just before Cr at x=gx(r).
+  // All at height y=gy(r).
+  for (let r = 1; r < N; r++) {
+    const y      = gy(r);
+    const xStart = gx(0);
+    const xEnd   = gx(r) - CR - 3;
+    const active = rowHasOpen(r);
+    svg.appendChild(el('line', {
+      x1: xStart, y1: y, x2: xEnd, y2: y,
+      stroke: active ? '#5dade2' : '#2980b9',
+      'stroke-width': active ? 5 : 3.5,
+      'stroke-linecap': 'round'
+    }));
+  }
+
+  // ── Solenoid (S) nodes — triangle, position (gx(c), gy(r)), c < r ──
+  for (let r = 1; r < N; r++) {
+    for (let c = 0; c < r; c++) {
+      const id     = nid(c, r);
+      const isOpen = openNodes.has(id);
+      const x      = gx(c);
+      const y      = gy(r);
+
+      const g = el('g', { id: `g_${id}`, style: 'cursor:pointer' });
+      g.addEventListener('click',      () => clickNode(id, c, r));
+      g.addEventListener('mouseenter', () => g.querySelector('circle').setAttribute('r', SR + 3));
+      g.addEventListener('mouseleave', () => g.querySelector('circle').setAttribute('r', SR + 1));
+
+      // Outer glow ring
+      g.appendChild(el('circle', {
+        cx: x, cy: y, r: SR + 1,
+        fill:   isOpen ? 'rgba(52,211,153,0.12)'  : 'rgba(108,52,131,0.28)',
+        stroke: isOpen ? '#34d399' : '#9b59b6',
+        'stroke-width': 1.8
+      }));
+      // Inner
+      g.appendChild(el('circle', {
+        cx: x, cy: y, r: SR - 2,
+        fill:   isOpen ? '#0d3d2a' : '#4a235a',
+        stroke: isOpen ? '#34d399' : '#9b59b6',
+        'stroke-width': 1
+      }));
+      // Label
+      g.appendChild(tx(isOpen ? '✓' : 'S', {
+        x, y: y + 4,
+        'text-anchor': 'middle',
+        fill: isOpen ? '#34d399' : '#d7b8f0',
+        'font-family': "'JetBrains Mono',monospace",
+        'font-size': isOpen ? '13' : '11',
+        'font-weight': '700',
+        'pointer-events': 'none'
+      }));
+
+      svg.appendChild(g);
+    }
+  }
+
+  // ── Cylinder circles — on diagonal ────────────────────────────
+  for (let i = 0; i < N; i++) {
+    const x      = gx(i);
+    const y      = gy(i);
+    const active = isCylActive(i);
+
+    const g = el('g', { id: `cyl_${i}` });
+    if (active) {
+      g.appendChild(el('circle', { cx:x, cy:y, r:CR+6,
+        fill:'rgba(52,211,153,0.06)', stroke:'rgba(52,211,153,0.18)', 'stroke-width':1 }));
+    }
+    g.appendChild(el('circle', {
+      cx: x, cy: y, r: CR,
+      fill:   active ? '#0d3d2a' : '#1a2744',
+      stroke: active ? '#34d399' : '#2d4a80',
+      'stroke-width': active ? 2.2 : 1.8
+    }));
+    g.appendChild(tx(CYL_LABELS[i], {
+      x, y: y + 4,
+      'text-anchor': 'middle',
+      fill: active ? '#34d399' : '#e8f0ff',
+      'font-family': "'Space Grotesk',sans-serif",
+      'font-size': '11', 'font-weight': '600',
+      'pointer-events': 'none'
+    }));
+    svg.appendChild(g);
+  }
+
+  // ── Dotted extension line C4→Cn (matches slide) ──────────────
+  svg.appendChild(el('line', {
+    x1: gx(N-2)+CR+5, y1: gy(N-2)+CR+5,
+    x2: gx(N-1)-CR-5, y2: gy(N-1)-CR-5,
+    stroke: '#2d4a80', 'stroke-width': 2,
+    'stroke-dasharray': '6 5', 'stroke-linecap': 'round', opacity: 0.55
+  }));
+
+  // ── Note box (matches slide) ──────────────────────────────────
+  const noteX = gx(N-1) + CR + 12;
+  const noteY = gy(0) - 10;
+  svg.appendChild(el('rect', { x:noteX, y:noteY, width:160, height:70, rx:4,
+    fill:'#13181f', stroke:'#2d4a80', 'stroke-width':1 }));
+  ['Note:', 'Number of valves are', 'determined by formula', 'n(n−1)/2'].forEach((line, i) => {
+    svg.appendChild(tx(line, {
+      x: noteX + 10, y: noteY + 16 + i * 14,
+      fill: i === 0 ? '#e2e8f0' : i === 3 ? '#9b59b6' : '#8899b0',
+      'font-family': "'Space Grotesk',sans-serif",
+      'font-size': i === 0 ? '11' : '10',
+      'font-weight': i === 0 || i === 3 ? '600' : '400'
+    }));
+  });
+
+  // Formula at bottom
+  svg.appendChild(tx(`n(n-1)/2 = ${N*(N-1)/2} solenoids  ·  n = ${N} cylinders  ·  click any node to toggle`, {
+    x: 280, y: 545, 'text-anchor': 'middle',
+    fill: '#3a4455', 'font-family': "'JetBrains Mono',monospace", 'font-size': '10'
+  }));
+
+  updateStats(); updateCylList(); updatePathList();
+}
+
+function clickNode(id, c, r) {
+  if (currentMode !== 'manual') {
+    currentMode = 'manual';
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-manual').classList.add('active');
+  }
+  const wasOpen = openNodes.has(id);
+  if (wasOpen) {
+    openNodes.delete(id);
+    setInfo(`S(${CYL_LABELS[c]}×${CYL_LABELS[r]}) closed`,
+      `Double block & bleed isolation engaged. Two independent seats sealed. Bleed port venting cavity — confirms isolation before next operation.`, 'closed');
+    updateDBB(false);
+  } else {
+    openNodes.add(id);
+    setInfo(`S(${CYL_LABELS[c]}×${CYL_LABELS[r]}) open`,
+      `Fluid path open: ${CYL_LABELS[c]} vertical manifold ↔ ${CYL_LABELS[r]} horizontal manifold. Both inlets bidirectional. Flow passes through cavity.`, 'open');
+    updateDBB(true);
+  }
+  draw();
+}
+
+function updateDBB(isOpen) {
+  const pl   = document.getElementById('dbb-pl');
+  const sl   = document.getElementById('dbb-sl');
+  const sr   = document.getElementById('dbb-sr');
+  const flow = document.getElementById('dbb-flow');
+  const lbl  = document.getElementById('dbb-lbl');
+  const bl   = document.getElementById('dbb-bl');
+  if (isOpen) {
+    pl.setAttribute('y','16'); pl.setAttribute('fill','#1a3060'); pl.setAttribute('stroke','#34d399');
+    sl.setAttribute('fill','#0d2a1a'); sl.setAttribute('stroke','#34d399');
+    sr.setAttribute('fill','#0d2a1a'); sr.setAttribute('stroke','#34d399');
+    bl.setAttribute('fill','#0d2a1a');
+    flow.setAttribute('opacity','1');
+    lbl.textContent = 'Open — fluid flows through cavity'; lbl.setAttribute('fill','#34d399');
+  } else {
+    pl.setAttribute('y','26'); pl.setAttribute('fill','#2a1f4e'); pl.setAttribute('stroke','#7c5cbf');
+    sl.setAttribute('fill','#1a1f28'); sl.setAttribute('stroke','#7c5cbf');
+    sr.setAttribute('fill','#1a1f28'); sr.setAttribute('stroke','#7c5cbf');
+    bl.setAttribute('fill','#2a2000');
+    flow.setAttribute('opacity','0');
+    lbl.textContent = 'Spring-return closed · dual seat isolation'; lbl.setAttribute('fill','#3a4455');
+  }
+}
+
+function updateStats() {
+  const open  = openNodes.size, total = N*(N-1)/2;
+  document.getElementById('stat-open').textContent   = open;
+  document.getElementById('stat-closed').textContent = total - open;
+  let ac = 0; for (let i=0;i<N;i++) if(isCylActive(i)) ac++;
+  document.getElementById('stat-acyl').textContent = ac;
+}
+
+function updateCylList() {
+  const list = document.getElementById('cyl-list'); list.innerHTML = '';
+  for (let i=0;i<N;i++) {
+    const a = isCylActive(i), d = document.createElement('div');
+    d.className = 'cyl-item' + (a ? ' active' : '');
+    d.innerHTML = `<div class="cyl-dot"></div>${CYL_LABELS[i]}${a?'<span style="font-size:9px;opacity:0.6;margin-left:4px">connected</span>':''}`;
+    list.appendChild(d);
+  }
+}
+
+function updatePathList() {
+  const ul = document.getElementById('path-list'); ul.innerHTML = '';
+  if (!openNodes.size) { ul.innerHTML = '<li><span class="pdot" style="background:#3a4455"></span>No active paths</li>'; return; }
+  for (const id of openNodes) {
+    const [,c,r] = id.split('_').map(Number);
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="pdot" style="background:#34d399"></span>${CYL_LABELS[c]} ↔ ${CYL_LABELS[r]}`;
+    ul.appendChild(li);
+  }
+}
+
+draw();
+</script>
+</body>
+</html>
